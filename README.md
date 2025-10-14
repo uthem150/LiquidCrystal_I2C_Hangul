@@ -576,7 +576,7 @@ LiquidCrystal_I2C_Hangul lcd(0x27, 20, 4);  // 0x27 주소, 20x4 LCD
 <table>
   <tr>
     <td align="center">
-      <a href="https://github.com/junwha0511">
+      <a href="https://github.com/junwha">
         <img src="https://github.com/junwha0511.png" width="100px;" alt=""/>
         <br />
         <sub><b>Junwha Hong</b></sub>
