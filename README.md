@@ -80,22 +80,22 @@ LCD HD44780 Chipset Limitations
 
 ```mermaid
 graph TB
-    A[User Input: L"한글출력"] --> B[Unicode Parser]
-    B --> C{Character Decomposer}
-    C --> D[초성 Extractor]
-    C --> E[중성 Extractor]
-    C --> F[종성 Extractor]
-    D --> G[CGRAM Manager]
+    A[사용자 입력: 한글출력] --> B[유니코드 파서]
+    B --> C{문자 분해기}
+    C --> D[초성 추출기]
+    C --> E[중성 추출기]
+    C --> F[종성 추출기]
+    D --> G[CGRAM 관리자]
     E --> G
     F --> G
-    G --> H{Layout Engine}
-    H --> I[ㅡ형: 1 Cell]
-    H --> J[ㅣ형: 2 Cells]
-    H --> K[ㅢ형: 2 Cells Merged]
-    I --> L[I2C Controller]
+    G --> H{레이아웃 엔진}
+    H --> I[ㅡ형: 1셀]
+    H --> J[ㅣ형: 2셀]
+    H --> K[ㅢ형: 2셀 병합]
+    I --> L[I2C 컨트롤러]
     J --> L
     K --> L
-    L --> M[LCD Display]
+    L --> M[LCD 디스플레이]
 
     style A fill:#e1f5fe
     style G fill:#fff3e0
@@ -153,30 +153,34 @@ LiquidCrystal_I2C_Hangul/
 ```mermaid
 sequenceDiagram
     participant User
-    participant API as printHangul()
+    participant API as printHangul
     participant Parser as Unicode Parser
-    participant Decomposer as Character Decomposer
+    participant Decomposer as Decomposer
     participant CGRAM as CGRAM Manager
-    participant LCD as I2C LCD Display
+    participant LCD as LCD Display
 
-    User->>API: printHangul(L"한", 0, 1)
-    API->>Parser: wchar_t[0] = 0xD55C
-    Parser->>Decomposer: unicode = 0xD55C - 0xAC00 = 0x295C
+    User->>API: printHangul 호출
+    API->>Parser: 유니코드 전달
+    Parser->>Decomposer: 0xD55C 전달
 
-    Note over Decomposer: jong = 0x295C % 28 = 4 (ㄴ)<br/>jung = (0x295C / 28) % 21 = 0 (ㅏ)<br/>cho = (0x295C / 28) / 21 = 18 (ㅎ)
+    rect rgb(240, 240, 255)
+        Note over Decomposer: 문자 분해<br/>초성: ㅎ<br/>중성: ㅏ<br/>종성: ㄴ
+    end
 
-    Decomposer->>CGRAM: cho=18, jung=0, jong=4
+    Decomposer->>CGRAM: 초중종성 데이터 전달
 
-    Note over CGRAM: 'ㅏ'는 ㅣ형이므로<br/>2개 슬롯 필요
+    rect rgb(255, 250, 240)
+        Note over CGRAM: ㅏ는 ㅣ형<br/>2개 슬롯 필요
+    end
 
-    CGRAM->>LCD: createChar(0, wcCho[18]) → 'ㅎ' 픽셀 데이터
-    CGRAM->>LCD: createChar(1, wcJung[0]) → 'ㅏ' 픽셀 데이터
-    CGRAM->>LCD: setCursor(0,0); write(0) → 첫 번째 셀에 초성
-    CGRAM->>LCD: setCursor(1,0); write(1) → 두 번째 셀에 중성
-    CGRAM->>LCD: createChar(0, wcJong[4]) → 종성 'ㄴ'
-    CGRAM->>LCD: setCursor(0,1); write(0) → 하단에 종성
+    CGRAM->>LCD: 초성 ㅎ 생성
+    CGRAM->>LCD: 중성 ㅏ 생성
+    CGRAM->>LCD: 첫번째 셀에 초성 출력
+    CGRAM->>LCD: 두번째 셀에 중성 출력
+    CGRAM->>LCD: 종성 ㄴ 생성
+    CGRAM->>LCD: 하단에 종성 출력
 
-    LCD->>User: 화면에 "한" 표시 완료
+    LCD-->>User: 한 표시 완료
 ```
 
 ### Database Design (Character Bitmap ROM)
@@ -274,14 +278,16 @@ HD44780 LCD는 단 **8개의 커스텀 문자(CGRAM 슬롯)**만 지원합니다
 
 #### 고려한 해결책 및 최종 선택 (Approaches & Decision)
 
-   **버퍼 전략** (최종 선택)
-   ```
-   짝수 문자(0,2,4...) → 슬롯 0~3 사용
-   홀수 문자(1,3,5...) → 슬롯 4~7 사용
-   문자 출력 후 LCD 화면 clear() → 다음 사이클에 재사용
-   ```
-   - ✅ 슬롯 충돌 없이 무한 표현
-   - ✅ 간단한 로직으로 예측 가능한 동작
+**버퍼 전략** (최종 선택)
+
+```
+짝수 문자(0,2,4...) → 슬롯 0~3 사용
+홀수 문자(1,3,5...) → 슬롯 4~7 사용
+문자 출력 후 LCD 화면 clear() → 다음 사이클에 재사용
+```
+
+- ✅ 슬롯 충돌 없이 무한 표현
+- ✅ 간단한 로직으로 예측 가능한 동작
 
 #### 구현 과정 및 결과 (Implementation & Result)
 
@@ -564,7 +570,6 @@ LCD 객체를 생성합니다.
 LiquidCrystal_I2C_Hangul lcd(0x3F, 16, 2);  // 0x3F 주소, 16x2 LCD
 LiquidCrystal_I2C_Hangul lcd(0x27, 20, 4);  // 0x27 주소, 20x4 LCD
 ```
-
 
 ## 👥 Contributors
 
